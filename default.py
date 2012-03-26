@@ -16,8 +16,6 @@ _regex_extractMenuItemSubSub = re.compile("<li class=\"cat-item cat-item-[0-9]{1
 _regex_extractShow = re.compile("<!-- content -->(.*?)<!-- /content -->", re.DOTALL)
 _regex_extractRecent = re.compile("<!-- videos -->(.*?)<!-- /videos -->", re.DOTALL);
 
-#Suche: http://cinemassacre.com/?s=festers+quest
-
 _regex_extractEpisode = re.compile("<!-- video -->(.*?)<!-- /video -->", re.DOTALL)
 _regex_extractEpisodeLink = re.compile("<h3><a href=\"(.*?)\">(.*?)</a></h3>", re.DOTALL)
 _regex_extractEpisodeImg = re.compile("<img src=\"(.*?)\" alt=\"(.*?)\" />", re.DOTALL)
@@ -248,11 +246,12 @@ def showEpisode(link):
                 if videoItem is not None: #Springboard
                     showEpisodeSpringboard(videoItem)
                 else:
-                    stream_url = "http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=spike.com&mgid=mgid:arc:content:spike.com:3b691aaf-2216-4fd0-925f-92941a922ddc&site=spike.com&segment=0&mgidOfMrssFeed=mgid:arc:content:spike.com:48f1a226-c6fe-4e99-bccc-10c6af79ff89"
-                    stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_700.flv"
-                    stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_300.flv"
-                    item = xbmcgui.ListItem(stream_url)
-                    xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(stream_url, item)
+                    #stream_url = "http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=spike.com&mgid=mgid:arc:content:spike.com:3b691aaf-2216-4fd0-925f-92941a922ddc&site=spike.com&segment=0&mgidOfMrssFeed=mgid:arc:content:spike.com:48f1a226-c6fe-4e99-bccc-10c6af79ff89"
+                    #stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_700.flv"
+                    #stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_300.flv"
+                    #item = xbmcgui.ListItem(stream_url)
+                    #xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(stream_url, item)
+                    pass
 
 def load_page(url):
     print url
