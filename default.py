@@ -4,6 +4,8 @@ import sys
 import urllib, urllib2
 import re
 
+import pprint
+
 thisPlugin = int(sys.argv[1])
 baseLink = "http://cinemassacre.com/"
 
@@ -52,12 +54,9 @@ _regex_extractVideoSpringboard = re.compile("<!-- (video|content) -->.*?http://(
 _regex_extractVideoSpringboardStream = re.compile("<media:content duration=\"[0-9]*?\" medium=\"video\" bitrate=\"[0-9]*?\" fileSize=\"[0-9]*?\" url=\"(.*?)\" type=\".*?\" />");
 
 #Spike.com
-_regex_extractVideoSpike = re.compile("<!-- video -->.*?<a href=\"(http://www.spike.com/.*?)\" target=\"_blank\">\".*?<!-- /video -->", re.DOTALL);
-#www.bigprox.com http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=spike.com&mgid=mgid:arc:content:spike.com:3b691aaf-2216-4fd0-925f-92941a922ddc&site=spike.com&segment=0&mgidOfMrssFeed=mgid:arc:content:spike.com:48f1a226-c6fe-4e99-bccc-10c6af79ff89
-#rtmpe
-#http://cinemassacre.com/2012/01/19/top-10-horror-remakes/
-#http://www.spike.com/video-clips/6j4bsa/cinemassacre-cinemassacre-top-10-horror-remakes
-#http://media.mtvnservices.com/pmt/e1/players/mgid:arc:video:spike.com:/config.xml?uri=mgid:arc:video:spike.com:028dac50-33c5-4127-bbe3-688735db95ad&type=network&ref=www.spike.com&geo=DE&group=entertainment&nid=82125&site=spike.com
+_regex_extractVideoSpike = re.compile("<!-- video -->.*?<a href=\"(http://www.spike.com/.*?)\" target=\"_blank\">.*?<!-- /video -->", re.DOTALL);
+_regex_extraxtVideoSpikeId = re.compile("<meta property=\"og:video\" content=\"http://media.mtvnservices.com/mgid:arc:video:spike.com:(.*?)\" />");
+_regex_extractVideoSpikeSreamURL = re.compile("<rendition bitrate=\"(.*?)\".*?<src>(.*?)</src>.*?</rendition>",re.DOTALL)
 
 def mainPage():
     global thisPlugin
@@ -225,6 +224,27 @@ def showEpisodeSpringboard(videoItem):
     item = xbmcgui.ListItem(stream_url)
     xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(stream_url, item)
 
+def showEpisodeSpike(videoItem):
+    videoUrl = videoItem.group(1)
+    videoPage = load_page(videoUrl)
+    videoId = _regex_extraxtVideoSpikeId.search(videoPage).group(1)
+    feedUrl = "http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=spike.com&mgid=mgid%3Aarc%3Acontent%3Aspike.com%3A"+videoId+"&site=spike.com&segment=0&mgidOfMrssFeed=mgid%3Aarc%3Acontent%3Aspike.com%3A"+videoId
+    videoFeed = load_page(feedUrl)
+    videoStreamUrls = _regex_extractVideoSpikeSreamURL.finditer(videoFeed)
+    
+    curStream = None
+    curBitrate = 0
+    for stream in videoStreamUrls:
+        streamUrl = stream.group(2)
+        streamBitrate = int(stream.group(1))
+        if streamBitrate>curBitrate:
+            curStream = streamUrl
+            curBitrate = streamBitrate
+    
+    if curStream is not None:
+        item = xbmcgui.ListItem(curStream)
+        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(curStream, item)
+
 def showEpisode(link):
     link = urllib.unquote(link)
     page = load_page(link)
@@ -246,12 +266,10 @@ def showEpisode(link):
                 if videoItem is not None: #Springboard
                     showEpisodeSpringboard(videoItem)
                 else:
-                    #stream_url = "http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=spike.com&mgid=mgid:arc:content:spike.com:3b691aaf-2216-4fd0-925f-92941a922ddc&site=spike.com&segment=0&mgidOfMrssFeed=mgid:arc:content:spike.com:48f1a226-c6fe-4e99-bccc-10c6af79ff89"
-                    #stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_700.flv"
-                    #stream_url = "rtmpe://cp22372.edgefcs.net/ondemand/mtvnorigin/gsp.spikecomstor/contentstore/media/3/1/8/6/4/3186465_300.flv"
-                    #item = xbmcgui.ListItem(stream_url)
-                    #xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(stream_url, item)
-                    pass
+                    videoItem = _regex_extractVideoSpike.search(page)
+                    if videoItem is not None: #Spike.com
+                        showEpisodeSpike(videoItem)
+
 
 def load_page(url):
     print url
