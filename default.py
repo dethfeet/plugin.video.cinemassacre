@@ -1,10 +1,11 @@
 import xbmcplugin
 import xbmcgui
+import xbmcaddon
 import sys
 import urllib, urllib2
 import re
 
-import pprint
+addon = xbmcaddon.Addon(id='plugin.video.cinemassacre')
 
 thisPlugin = int(sys.argv[1])
 baseLink = "http://cinemassacre.com/"
@@ -24,23 +25,13 @@ _regex_extractEpisodeImg = re.compile("<img src=\"(.*?)\" alt=\"(.*?)\" />", re.
 _regex_extractEpisodeImg2 = re.compile("<img width=\"[0-9]*\" height=\"[0-9]*\" src=\"(.*?)\" class=\".*?\" alt=\"(.*?)\" title=\".*?\" />", re.DOTALL)
 
 #Bip.tv
-#_regex_extractVideoBip = re.compile("<!-- video -->.*?<iframe src=\"(.*?)\".*?allowfullscreen>.*?<!-- /video -->",re.DOTALL);
 _regex_extractVideoBip = re.compile("(<!-- video -->|<!-- content -->).*?(http://blip.tv/play/.*?)\".*?(<!-- /video -->|<!-- comments -->)", re.DOTALL);
 _regex_extractVideoFeedURL = re.compile("file=(.*?)&", re.DOTALL);
 _regex_extractVideoFeedURL2 = re.compile("file=(.*)", re.DOTALL);
 
-#_regex_extractFilesFromFeed = re.compile("<media:group>.*?<media:content url=\"(.*?)\".*?type=\"video/quicktime\".*?<media:content url=\"(.*?)\".*?type=\"video/x-m4v\".*?<media:content url=\"(.*?)\".*?type=\"video/x-flv\"",re.DOTALL);
-_regex_extractFilesFromFeedMov = re.compile("<media:content url=\"(.*?)\".*?type=\"video/quicktime\".*?");
-_regex_extractFilesFromFeedMp4 = re.compile("<media:content url=\"(.*?)\".*?type=\"video/mp4\".*?");
-_regex_extractFilesFromFeedM4v = re.compile("<media:content url=\"(.*?)\".*?type=\"video/x-m4v\".*?");
-_regex_extractFilesFromFeedFlv = re.compile("<media:content url=\"(.*?)\".*?type=\"video/x-flv\".*?");
-
 #Youtube
-_regex_extractVideoYoutube = re.compile("<!-- content -->.*?<!-- video -->.*?(http://www\.youtube\.com/.*?/.*?)[\?|\"].*?<!-- /video -->.*?<!-- /content -->", re.DOTALL);
-
-_regex_extractVideoYoutubeId = re.compile("http://www.youtube.com/[embed|v]/(.*)")
-_regex_extractVideoYoutubeExtractFmtStreamMap = re.compile("url_encoded_fmt_stream_map=(.*itag%3D[0-9]{1,2})&")
-_regex_extractVideoInfo = re.compile("(.*?)&.*&type=(.*?)&itag=([0-9]{1,2})")
+_regex_extractVideoYoutube = re.compile("<!-- (content|features) -->.*?<!-- video -->.*?(http://www\.youtube\.com/.*?/.*?)[\?|\"].*?<!-- /video -->.*?<!-- /(content|features) -->", re.DOTALL);
+_regex_extractVideoYoutubeId = re.compile("http://www.youtube.com/(embed|v)/(.*)")
 
 #Gametrailers
 _regex_extractVideoGametrailers = re.compile("<a href=\"(http://www.gametrailers.com/video/angry-video-screwattack/(.*))\" target=\"_blank\">")
@@ -48,8 +39,6 @@ _regex_extractVideoGametrailersXML = re.compile("<media:content type=\"text/xml\
 _regex_extractVideoGametrailersStreamURL = re.compile("<src>(.*?)</src>")
 
 #Springboard
-#_regex_extractVideoSpringboard = re.compile("<!-- features -->.*?<!-- video -->.*?http://cinemassacre.springboardplatform.com/mediaplayer/springboard/video/(.*?)/(.*?)/(.*?)/.*?<!-- /video -->.*?<!-- /features -->",re.DOTALL);
-#_regex_extractVideoSpringboard = re.compile("(<!-- features -->|<!-- content -->).*?<!-- video -->.*?http://cinemassacre.springboardplatform.com/mediaplayer/springboard/video/(.*?)/(.*?)/(.*?)/.*?<!-- /video -->.*?(<!-- /features -->|<!-- /content -->)",re.DOTALL);
 _regex_extractVideoSpringboard = re.compile("<!-- (video|content) -->.*?http://(cinemassacre\.springboardplatform\.com|www\.springboardplatform\.com)/mediaplayer/springboard/video/(.*?)/(.*?)/(.*?)/.*?<!-- /(video|content) -->", re.DOTALL);
 _regex_extractVideoSpringboardStream = re.compile("<media:content duration=\"[0-9]*?\" medium=\"video\" bitrate=\"[0-9]*?\" fileSize=\"[0-9]*?\" url=\"(.*?)\" type=\".*?\" />");
 
@@ -61,7 +50,7 @@ _regex_extractVideoSpikeSreamURL = re.compile("<rendition bitrate=\"(.*?)\".*?<s
 def mainPage():
     global thisPlugin
 
-    addDirectoryItem("Recent videos", {"action" : "recent", "link": ""})  
+    addDirectoryItem(addon.getLocalizedString(30000), {"action" : "recent", "link": ""})  
     subMenu(level1=0, level2=0)
 
 def subMenu(level1=0, level2=0):
@@ -135,7 +124,7 @@ def extractEpisodes(show):
         if episode_img is None:
             episode_img = _regex_extractEpisodeImg2.search(episode_html)
         episode_img = episode_img.group(1)
-        addDirectoryItem(episod_title, {"action" : "episode", "link": episode_link}, episode_img)
+        addDirectoryItem(episod_title, {"action" : "episode", "link": episode_link}, episode_img, False)
     xbmcplugin.endOfDirectory(thisPlugin)
 
 def showEpisodeBip(videoItem):
@@ -145,62 +134,27 @@ def showEpisodeBip(videoItem):
     req = urllib2.Request(url)
     response = urllib2.urlopen(req)
     fullURL = response.geturl()
+    
     feedURL = _regex_extractVideoFeedURL.search(fullURL)
     if feedURL is None:
         feedURL = _regex_extractVideoFeedURL2.search(fullURL)
     feedURL = urllib.unquote(feedURL.group(1))
-
-    feed = load_page(feedURL)
-    feedGroupMov = _regex_extractFilesFromFeedMov.search(feed);
-    feedGroupMp4 = _regex_extractFilesFromFeedMp4.search(feed);
-    feedGroupM4v = _regex_extractFilesFromFeedM4v.search(feed);
-    feedGroupFlv = _regex_extractFilesFromFeedFlv.search(feed);
     
-    playVideo = None
-    if feedGroupMov is not None:
-        videoMov = feedGroupMov.group(1);
-        playVideo = videoMov
-    if feedGroupMp4 is not None:
-        videoMp4 = feedGroupMp4.group(1);
-        if playVideo is None:
-            playVideo = videoMp4            
-    if feedGroupM4v is not None:
-        videoM4v = feedGroupM4v.group(1);
-        playVideo = videoM4v
-    if feedGroupFlv is not None:
-        videoFlv = feedGroupFlv.group(1);
-        if playVideo is None:
-            playVideo = videoFlv
+    blipId = feedURL[feedURL.rfind("/")+1:]
     
-    item = xbmcgui.ListItem(playVideo)
-    xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(playVideo, item)
+    stream_url = "plugin://plugin.video.bliptv/?action=play_video&videoid=" + blipId
+    item = xbmcgui.ListItem(path=stream_url)
+    return xbmcplugin.setResolvedUrl(thisPlugin, True, item)
 
 def showEpisodeYoutube(videoItem):
-    url = videoItem.group(1)
-            
-    youtubeID = _regex_extractVideoYoutubeId.search(url).group(1)
-    url = "http://www.youtube.com/get_video_info?video_id=" + youtubeID
-    get_info = load_page(url)
+    global thisPlugin
+    url = videoItem.group(2)
     
-    fmt_stream_url = _regex_extractVideoYoutubeExtractFmtStreamMap.search(get_info).group(1)
-    fmt_stream_url = urllib.unquote(fmt_stream_url)
-    fmt_stream_urls = fmt_stream_url.split(',')
-    
-    for stream_url in fmt_stream_urls:
-        stream_url = urllib.unquote(stream_url)[4:]
-        stream_url = urllib.unquote(stream_url)
+    youtubeID = _regex_extractVideoYoutubeId.search(url).group(2)
 
-        video_info = _regex_extractVideoInfo.search(stream_url)
-        video_url = video_info.group(1)
-        video_type = video_info.group(2)
-        video_itag = video_info.group(3)
-        
-        str_end = stream_url.find("quality=")
-        stream_url = stream_url[:str_end]
-        
-        if video_itag == "43":    
-            item = xbmcgui.ListItem(stream_url)
-            xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(stream_url, item)
+    stream_url = "plugin://plugin.video.youtube/?action=play_video&videoid=" + youtubeID
+    item = xbmcgui.ListItem(path=stream_url)
+    return xbmcplugin.setResolvedUrl(thisPlugin, True, item)
 
 def showEpisodeGametrailers(videoItem):
     url = videoItem.group(1)
@@ -277,7 +231,6 @@ def showEpisode(link):
                     if videoItem is not None: #Spike.com
                         showEpisodeSpike(videoItem)
 
-
 def load_page(url):
     print url
     req = urllib2.Request(url)
@@ -286,10 +239,12 @@ def load_page(url):
     response.close()
     return link
 
-def addDirectoryItem(name, parameters={}, pic=""):
+def addDirectoryItem(name, parameters={}, pic="", folder=True):
     li = xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=pic)
+    if not folder:
+        li.setProperty('IsPlayable', 'true')
     url = sys.argv[0] + '?' + urllib.urlencode(parameters)
-    return xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=True)
+    return xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder=folder)
 
 def remove_html_special_chars(inputStr):
     inputStr = inputStr.replace("&#8211;", "-")
