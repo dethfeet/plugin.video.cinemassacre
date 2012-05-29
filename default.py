@@ -15,9 +15,8 @@ baseLink = "http://cinemassacre.com/"
 hideMenuItem = []
 hideMenuItem.append("412") # Gallery
 hideMenuItem.append("486") # Fan Stuff
-#hideMenuItem.append("228") # Fan Art
-#hideMenuItem.append("480") # Fan photos
-#hideMenuItem.append("229") # Fan songs
+hideMenuItem.append("402") # Full list of AVGN Videos
+hideMenuItem.append("225") # Game Collection
 
 _regex_extractMenu = re.compile("<ul id=\"navlist\">(.*?)<ul id=\"navpages\">", re.DOTALL);
 
@@ -76,20 +75,28 @@ def extractMenu(page):
     menuList = []
     
     parent = -1;
+    parentHidden = True
+    parent2Hidden = True
     for line in menu.split("\n"):
         menuItem = _regex_extractMenuItem.search(line)
         if menuItem is not None:
             if not menuItem.group(1) in hideMenuItem:
+                parentHidden = False
                 parent = parent + 1
                 parent2 = -1
                 menuList.append({"name" : menuItem.group(4), "link" : menuItem.group(2), "children" : []})
-        else:
+            else:
+                parentHidden = True
+        elif not parentHidden:
             menuItemSub = _regex_extractMenuItemSub.search(line)
             if menuItemSub is not None:
                 if not menuItemSub.group(1) in hideMenuItem:
+                    parent2Hidden = False
                     parent2 = parent2 + 1
                     menuList[parent]['children'].append({"name" : menuItemSub.group(4), "link" : menuItemSub.group(2), "children" : []});
-            else:
+                else:
+                    parent2Hidden = True
+            elif not parent2Hidden:
                 menuItemSubSub = _regex_extractMenuItemSubSub.search(line)
                 if menuItemSubSub is not None:
                     if not menuItemSubSub.group(1) in hideMenuItem:
