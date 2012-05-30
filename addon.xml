@@ -10,7 +10,7 @@
     <provides>video</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
-  		<language>EN</language>
+  		<language>en</language>
     	<summary>cinemassacre.com</summary>
     	<description>Home of the Angry Video Game Nerd, Monster Madness, movie reviews, top 10's, and commentary, retro and classic video gaming and more.</description>
     <platform>all</platform>
