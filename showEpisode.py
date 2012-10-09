@@ -74,7 +74,7 @@ def showEpisodeDorkly(videoItem):
     return False
     
 def showEpisodeSpringboard(videoItem):
-    _regex_extractVideoSpringboardStream = re.compile("<media:content duration=\"[0-9]*?\" medium=\"video\" bitrate=\"[0-9]*?\" fileSize=\"[0-9]*?\" url=\"(.*?)\" type=\".*?\" />");
+    _regex_extractVideoSpringboardStream = re.compile("<media:content.*?url=\"(.*?)\".*?/>");
     
     siteId = videoItem.group(2)
     contentId = videoItem.group(3)
