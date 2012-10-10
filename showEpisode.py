@@ -19,8 +19,8 @@ def showEpisode(episode_page):
         {"function":showEpisodeDorkly, "regex":"http://www.dorkly.com/(e/|moogaloop/noobtube.swf\?clip_id=)([0-9]*)"},
         {"function":showEpisodeSpringboard, "regex":"\.springboardplatform\.com/mediaplayer/springboard/video/(.*?)/(.*?)/(.*?)/"},
         {"function":showEpisodeSpringboard, "regex":"\\$sb\\(\"(.*?)\",{\"sbFeed\":{\"partnerId\":(.*?),\"type\":\"video\",\"contentId\":(.*?),\"cname\":\"(.*?)\"},\"style\":{\"width\":.*?,\"height\":.*?}}\\);"},
-        {"function":showEpisodeDaylimotion, "regex":"(http://www.dailymotion.com/video/.*?)_"},          
-        {"function":showEpisodeGametrailers, "regex":"<a href=\"(http://www.gametrailers.com/video/angry-video-screwattack/(.*))\" target=\"_blank\">"},
+        {"function":showEpisodeDaylimotion, "regex":"(http://www.dailymotion.com/video/.*?)_"},
+        {"function":showEpisodeGametrailers, "regex":"<a href=\"(http://www.gametrailers.com/videos/(.*).*)\" target=\"_blank\">"},
         {"function":showEpisodeSpike, "regex":"<a href=\"(http://www.spike.com/.*?)\""},               
     )
     
@@ -88,6 +88,7 @@ def showEpisodeSpringboard(videoItem):
     feedItem = _regex_extractVideoSpringboardStream.search(feed);
     stream_url = feedItem.group(1)
     item = xbmcgui.ListItem(path=stream_url)
+
     xbmcplugin.setResolvedUrl(thisPlugin, True, item)
     return False
 
@@ -99,20 +100,41 @@ def showEpisodeDaylimotion(videoItem):
     return False
 
 def showEpisodeGametrailers(videoItem):
-    _regex_extractVideoGametrailersXML = re.compile("<media:content type=\"text/xml\" medium=\"video\" isDefault=\"true\" duration=\"[0-9]{1,4}\" url=\"(.*?)\"/>")
-    _regex_extractVideoGametrailersStreamURL = re.compile("<src>(.*?)</src>")
+    _regex_extractVideoGametrailerId = re.compile("<meta property=\"og:video\" content=\"(http://media.mtvnservices.com/fb/mgid:arc:video:gametrailers.com:(.*?)\.swf)\" />");
+    _regex_extractVideoGametrailerStreamURL = re.compile("<rendition bitrate=\"(.*?)\".*?<src>(.*?)</src>.*?</rendition>",re.DOTALL)
 
-    url = videoItem.group(1)
-    videoId = videoItem.group(2)
-    urlXml = "http://www.gametrailers.com/neo/?page=xml.mediaplayer.Mrss&mgid=mgid%3Amoses%3Avideo%3Agametrailers.com%3A" + videoId + "&keyvalues={keyvalues}"
-    xml1 = showEpisodeLoadPage(urlXml)
-    urlXml = _regex_extractVideoGametrailersXML.search(xml1).group(1)
-    urlXml = urlXml.replace("&amp;", "&")
-    xml2 = showEpisodeLoadPage(urlXml)
-    stream_url = _regex_extractVideoGametrailersStreamURL.search(xml2).group(1)
-    item = xbmcgui.ListItem(path=stream_url)
-    xbmcplugin.setResolvedUrl(thisPlugin, True, item)
-    return False
+    videoUrl = videoItem.group(1)
+    videoPage = showEpisodeLoadPage(videoUrl)
+    swfUrl = _regex_extractVideoGametrailerId.search(videoPage).group(1)
+
+    #GET the 301 redirect URL
+    req = urllib2.Request(swfUrl)
+    response = urllib2.urlopen(req)
+    swfUrl = response.geturl()
+    videoId = _regex_extractVideoGametrailerId.search(videoPage).group(2)
+
+    feedUrl = "http://udat.mtvnservices.com/service1/dispatch.htm?feed=mediagen_arc_feed&account=gametrailers.com&mgid=mgid%3Aarc%3Acontent%3Agametrailers.com%3A"+videoId+"&site=gametrailers.com&segment=0&mgidOfMrssFeed=mgid%3Aarc%3Acontent%3Agametrailers.com%3A"+videoId
+
+    videoFeed = showEpisodeLoadPage(feedUrl)
+    videoStreamUrls = _regex_extractVideoGametrailerStreamURL.finditer(videoFeed)
+
+    curStream = None
+    curBitrate = 0
+    for stream in videoStreamUrls:
+        streamUrl = stream.group(2)
+        streamBitrate = int(stream.group(1))
+        if streamBitrate>curBitrate:
+            curStream = streamUrl.replace(" ","%20")
+            curBitrate = streamBitrate
+
+    swfUrl = swfUrl.replace("&geo=DE","&geo=US")
+    swfUrl = swfUrl.replace("geo%3dDE%26","geo%3dUS%26")
+
+    stream_url = curStream + " swfUrl="+swfUrl+" swfVfy=1"
+    if curStream is not None:
+        item = xbmcgui.ListItem(path=stream_url)
+        xbmcplugin.setResolvedUrl(thisPlugin, True, item)
+        return False
 
 def showEpisodeSpike(videoItem):
     _regex_extraxtVideoSpikeId = re.compile("<meta property=\"og:video\" content=\"(http://media.mtvnservices.com/mgid:arc:video:spike.com:(.*?))\" />");
