@@ -21,7 +21,8 @@ def showEpisode(episode_page):
         {"function":showEpisodeSpringboard, "regex":"\\$sb\\(\"(.*?)\",{\"sbFeed\":{\"partnerId\":(.*?),\"type\":\"video\",\"contentId\":(.*?),\"cname\":\"(.*?)\"},\"style\":{\"width\":.*?,\"height\":.*?}}\\);"},
         {"function":showEpisodeDaylimotion, "regex":"(http://www.dailymotion.com/video/.*?)_"},
         {"function":showEpisodeGametrailers, "regex":"<a href=\"(http://www.gametrailers.com/videos/(.*).*)\" target=\"_blank\">"},
-        {"function":showEpisodeSpike, "regex":"<a href=\"(http://www.spike.com/.*?)\""},               
+        {"function":showEpisodeSpringboadAfterResolve, "regex":"<script src=\"http://www.springboardplatform.com/js/overlay\"></script><iframe id=\"(.*?)\" src=\"(.*?)\""},
+        {"function":showEpisodeSpike, "regex":"<a href=\"(http://www.spike.com/.*?)\""},
     )
     
     for provider in providers:
@@ -29,6 +30,18 @@ def showEpisode(episode_page):
         videoItem = regex.search(episode_page)
         if videoItem is not None:
             return provider['function'](videoItem)
+
+def showEpisodeSpringboadAfterResolve(videoItem):
+    _regex_extractVideoParameters = re.compile("http://cms\.springboard.*\.com/(.*?)/(.*?)/video/(.*?)/.*?/(.*?)")
+
+    # Handle shortened URLs
+    req = urllib2.Request(videoItem.group(2))
+    response = urllib2.urlopen(req)
+    fullURL = response.geturl()
+
+    videoItem = _regex_extractVideoParameters.search(fullURL)
+    showEpisodeSpringboard(videoItem)
+    return False
 
 def showEpisodeBip(videoItem):
     _regex_extractVideoFeedURL = re.compile("file=(.*?)&", re.DOTALL);
